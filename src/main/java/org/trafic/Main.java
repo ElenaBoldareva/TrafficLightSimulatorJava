@@ -1,41 +1,38 @@
 package org.trafic;
 
 import java.io.IOException;
-import java.util.ArrayDeque;
+import java.util.LinkedList;
 import java.util.Scanner;
 import java.util.regex.Pattern;
 
 public class Main {
-    static Thread threadClass = new Thread(new ThreadClass());
-    static String numberOfRoads;
-    static ArrayDeque<String> roads = new ArrayDeque<>();
-    static String interval;
-    static Scanner scanner = new Scanner(System.in);
-    static String regex = "\\D+";
-    static Pattern pattern = Pattern.compile(regex);
-    static String message = "MENU_INFO";/*+"\n1. Add road\n" +
+    public static int numberOfRoads;
+    public static int interval;
+    public static boolean isExit = false;
+    public static final LinkedList<Road> ROADS = new LinkedList<>();
+    private static final Scanner SCANNER = new Scanner(System.in);
+    private static final Pattern NUMBERS_PATTERN = Pattern.compile("\\D+");
+    private static final String MENU_INFO = "\n1. Add road\n" +
             "2. Delete road\n" +
             "3. Open system\n" +
-            "0. Quit";*/
+            "0. Quit";
 
-    public static void main(String[] args) throws IOException {
+
+    public static void main(String[] args) {
         System.out.println("Welcome to the traffic management system!");
         managementSystem();
     }
 
     public static void managementSystem() {
         inputNumberOfRoads();
-        while (pattern.matcher(numberOfRoads = scanner.next()).matches() || Integer.parseInt(numberOfRoads) <= 0) {
-            System.out.print("Error! Incorrect Input. Try again: ");
-        }
-
-        interval();
-        while (pattern.matcher(interval = scanner.next()).matches() || Integer.parseInt(interval) <= 0) {
-            System.out.print("Error! Incorrect Input. Try again: ");
-        }
-
-        threadClass.start();
+        inputInterval();
+        startSystemInfo();
         menu();
+    }
+
+    private static void startSystemInfo() {
+        Thread systemInfo = new Thread(new SystemInfo());
+        systemInfo.start();
     }
 
     public static void clearScreen() {
@@ -45,16 +42,16 @@ public class Main {
                     : new ProcessBuilder("clear");
             clearCommand.inheritIO().start().waitFor();
         } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
         }
     }
 
     public static void menu() {
-        while (true) {
+        while (!isExit) {
             clearScreen();
-            System.out.println(message);
-            int optionInTheMenu = scanner.nextInt();
+            System.out.println(MENU_INFO);
+            int optionInTheMenu = SCANNER.nextInt();
             switch (optionInTheMenu) {
-
                 case 1:
                     addRoad();
                     clearScreen();
@@ -69,51 +66,67 @@ public class Main {
                     break;
                 case 0:
                     quit();
-                    return;
+                    break;
                 default:
                     System.out.println("Incorrect option");
             }
         }
     }
 
-
     public static void addRoad() {
-        System.out.println("Input road name:");
-        String nameRoad = scanner.next();
-        roads.add(nameRoad);
-
-        if (roads.size() > Integer.parseInt(numberOfRoads)) {
+        if (ROADS.size() == numberOfRoads) {
             System.out.println("Queue is full");
-        } else System.out.println(nameRoad + " added");
+            return;
+        }
 
+        System.out.println("Input road name: ");
+        String roadName = SCANNER.next();
+
+        Road road = new Road(roadName, RoadState.CLOSED, Integer.MAX_VALUE);
+        synchronized (ROADS) {
+            ROADS.add(road);
+        }
+        System.out.println(roadName + " added");
     }
 
     public static void deleteRoad() {
-        if (roads.isEmpty()) {
-            System.out.println("Queue is empty");
-        } else System.out.println("Road deleted " + roads.removeFirst());
+        synchronized (ROADS) {
+            if (ROADS.isEmpty()) {
+                System.out.println("Queue is empty");
+            } else {
+                System.out.println("Road deleted " + ROADS.removeFirst().getName());
+            }
+        }
     }
 
     public static void openSystem() {
-        ThreadClass.isSystem = true;
+        SystemInfo.isSystem = true;
         try {
             System.in.read(new byte[2]);
         } catch (IOException e) {
             e.printStackTrace();
         }
-        ThreadClass.isSystem = false;
+        SystemInfo.isSystem = false;
     }
 
     public static void quit() {
         System.out.println("Bye!");
-        System.exit(0);
+        isExit = true;
     }
 
-    public static void interval() {
+    public static void inputInterval() {
         System.out.print("Input the interval: ");
+        String inputInterval;
+        while (NUMBERS_PATTERN.matcher(inputInterval = SCANNER.next()).matches() || (interval = Integer.parseInt(inputInterval)) <= 0) {
+            System.out.print("Error! Incorrect Input. Try again: ");
+        }
     }
 
     public static void inputNumberOfRoads() {
         System.out.print("Input the number of roads: ");
+        String inputNumberOfRoads;
+        while (NUMBERS_PATTERN.matcher(inputNumberOfRoads = SCANNER.next()).matches() || (numberOfRoads = Integer.parseInt(inputNumberOfRoads)) <= 0) {
+            System.out.print("Error! Incorrect Input. Try again: ");
+        }
     }
 }
