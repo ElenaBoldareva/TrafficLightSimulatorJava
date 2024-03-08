@@ -34,45 +34,53 @@ public class SystemInfo implements Runnable {
 
             // Only 1 road
             if (Main.ROADS.size() == 1) {
-                Road road = Main.ROADS.getFirst();
-                switch (road.getState()) {
-                    case OPEN:
-                        road.decrementCounter();
-                        if (road.getCounter() <= 0) {
-                            road.setCounter(Main.interval);
-                        }
-                        break;
-                    case CLOSED:
-                        road.setState(RoadState.OPEN);
-                        road.setCounter(Main.interval);
-                        break;
-                    default:
-                        throw new IllegalStateException();
-                }
+                updateOnlyOneRoad();
                 return;
             }
 
-            // Many roads
-            int openRoadIndex;
-            int openRoadCounter;
-            Road openRoad = getOpenRoad();
-            if (openRoad != null) {
-                // There is an open road
-                openRoadIndex = Main.ROADS.indexOf(openRoad);
-                openRoadCounter = openRoad.getCounter();
-                if (--openRoadCounter <= 0) {
-                    openRoadIndex++;
-                    if (openRoadIndex == Main.ROADS.size()) {
-                        openRoadIndex = 0;
-                    }
-                    openRoadCounter = Main.interval;
+            updateManyRoads();
+        }
+    }
+
+    private void updateManyRoads() {
+        // Many roads
+        int openRoadIndex;
+        int openRoadCounter;
+        Road openRoad = getOpenRoad();
+        if (openRoad != null) {
+            // There is an open road
+            openRoadIndex = Main.ROADS.indexOf(openRoad);
+            openRoadCounter = openRoad.getCounter();
+            if (--openRoadCounter <= 0) {
+                openRoadIndex++;
+                if (openRoadIndex == Main.ROADS.size()) {
+                    openRoadIndex = 0;
                 }
-            } else {
-                // There are no open roads
-                openRoadIndex = getMinCounterRoadIndex();
                 openRoadCounter = Main.interval;
             }
-            recalculateAllCounters(openRoadIndex, openRoadCounter);
+        } else {
+            // There are no open roads
+            openRoadIndex = getMinCounterRoadIndex();
+            openRoadCounter = Main.interval;
+        }
+        recalculateAllCounters(openRoadIndex, openRoadCounter);
+    }
+
+    private static void updateOnlyOneRoad() {
+        Road road = Main.ROADS.getFirst();
+        switch (road.getState()) {
+            case OPEN:
+                road.decrementCounter();
+                if (road.getCounter() <= 0) {
+                    road.setCounter(Main.interval);
+                }
+                break;
+            case CLOSED:
+                road.setState(RoadState.OPEN);
+                road.setCounter(Main.interval);
+                break;
+            default:
+                throw new IllegalStateException();
         }
     }
 
@@ -118,7 +126,7 @@ public class SystemInfo implements Runnable {
         }
         for (Road road : Main.ROADS) {
             String color = road.getState() == RoadState.OPEN ? ANSI_GREEN : ANSI_RED;
-            System.out.println(color + road.getName() + " will be " + road.getState().toString() + " for " + road.getCounter() + "s.");
+            System.out.printf("%s%s will be %s for %ds.%n", color, road.getName(), road.getState().toString(), road.getCounter());
         }
         System.out.println(ANSI_RESET);
     }
